@@ -225,7 +225,7 @@ namespace SubworldLibrary
 				ccc.MarkLabel(label);
 			};
 
-			IL_WorldFile.SaveWorld_bool_bool += il =>
+			IL_WorldFile._SaveWorld += il =>
 			{
 				var c = new ILCursor(il);
 
@@ -1112,14 +1112,6 @@ namespace SubworldLibrary
 
 			Main.tile = (Tilemap)Activator.CreateInstance(typeof(Tilemap), BindingFlags.NonPublic | BindingFlags.Instance, null, new object[] { newWidth, newHeight }, null);
 			Main.Map = new WorldMap(newWidth, newHeight);
-
-			// try to match vanilla dimensions
-			Main.mapTargetX = (newWidth + 1678) / 1680;
-			Main.mapTargetY = (newHeight + 1198) / 1200;
-			Main.instance.mapTarget = new RenderTarget2D[Main.mapTargetX, Main.mapTargetY];
-
-			Main.initMap = new bool[Main.mapTargetX, Main.mapTargetY];
-			Main.mapWasContentLost = new bool[Main.mapTargetX, Main.mapTargetY];
 		}
 
 		private static void EraseSubworlds(int index)

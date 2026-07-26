@@ -1,6 +1,0 @@
-Items: {
-	SubworldEnteringItem: {
-		DisplayName: Subworld Entering Item
-		Tooltip: Use to enter a subworld. Only works with 'SubworldLibrary' Mod enabled
-	}
-}

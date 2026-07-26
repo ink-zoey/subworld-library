@@ -61,8 +61,6 @@ namespace SubworldLibrary
 
 		bool ISocket.IsDataAvailable() => false;
 
-		void ISocket.SendQueuedPackets() { }
-
 		bool ISocket.StartListening(SocketConnectionAccepted callback) => false;
 
 		void ISocket.StopListening() { }
@@ -72,9 +70,9 @@ namespace SubworldLibrary
 	{
 		internal static List<Subworld> subworlds;
 
-		internal static Subworld current;
+		public static Subworld current;
 		internal static Subworld cache;
-		private static WorldFileData main;
+		public static WorldFileData main;
 		private static int suppressAutoShutdown;
 
 		internal static TagCompound copiedData;
@@ -99,29 +97,30 @@ namespace SubworldLibrary
 
 			deniedSockets = new HashSet<ISocket>();
 
-			WorldFile.OnWorldLoad += ReadCachedData;
+            On_WorldFile.LoadWorld += LoadWorld_ReadCachedData;
 			Player.Hooks.OnEnterWorld += OnEnterWorld;
 			Netplay.OnDisconnect += OnDisconnect;
 
 			suppressAutoShutdown = -1;
 		}
 
-		public override void Unload()
+        public override void Unload()
 		{
-			WorldFile.OnWorldLoad -= ReadCachedData;
 			Player.Hooks.OnEnterWorld -= OnEnterWorld;
 			Netplay.OnDisconnect -= OnDisconnect;
 		}
 
-		private static void ReadCachedData()
-		{
-			if (copiedData == null || current != null || cache != null)
-			{
-				return;
-			}
+        private void LoadWorld_ReadCachedData(On_WorldFile.orig_LoadWorld orig)
+        {
+            orig();
 
-			ReadCopiedMainWorldData();
-		}
+            if (copiedData == null || current != null || cache != null)
+            {
+                return;
+            }
+
+            ReadCopiedMainWorldData();
+        }
 
 		private static void OnEnterWorld(Player player)
 		{
@@ -424,10 +423,12 @@ namespace SubworldLibrary
 				deniedSockets.Remove(client.Socket);
 
 				client.State = 1;
-				client.ResetSections();
 
-				// prompt the client to reconnect
-				client.Socket.AsyncSend(new byte[] { 5, 0, 3, (byte)player, 0 }, 0, 5, (state) => { });
+                Array.Clear(client.TileSections, 0, client.TileSections.Length);
+                Array.Clear(client.TileSectionsCheckTime, 0, client.TileSectionsCheckTime.Length);
+
+                // prompt the client to reconnect
+                client.Socket.AsyncSend(new byte[] { 5, 0, 3, (byte)player, 0 }, 0, 5, (state) => { });
 
 				pendingMoves[player] = -1;
 				return;
@@ -1324,7 +1325,7 @@ namespace SubworldLibrary
 
 			if (netMode == 0)
 			{
-				WorldFile.CacheSaveTime();
+				// WorldFile.CacheSaveTime();
 
 				if (copiedData == null)
 				{
@@ -1399,7 +1400,7 @@ namespace SubworldLibrary
 				return;
 			}
 
-			WorldGen.noMapUpdate = true;
+			// WorldGen.noMapUpdate = true;
 			if (cache != null && cache.NoPlayerSaving)
 			{
 				PlayerFileData playerData = Player.GetFileData(Main.ActivePlayerFileData.Path, Main.ActivePlayerFileData.IsCloudSave);
@@ -1430,7 +1431,7 @@ namespace SubworldLibrary
 			}*/
 		}
 
-		private static void LoadWorld()
+		public static void LoadWorld()
 		{
 			bool isSubworld = current != null;
 			bool cloud = main.IsCloudSave;
@@ -1442,9 +1443,8 @@ namespace SubworldLibrary
 
 			Main.ToggleGameplayUpdates(false);
 
-			WorldGen.gen = true;
+			WorldGen.generatingWorld = true;
 			WorldGen.loadFailed = false;
-			WorldGen.loadSuccess = false;
 
 			if (!isSubworld || current.ShouldSave)
 			{
@@ -1463,14 +1463,11 @@ namespace SubworldLibrary
 					ModContent.GetInstance<SubworldLibrary>().Logger.Warn("Failed to load \"" + Main.worldName + (WorldGen.worldBackup ? "\" from file" : "\" from file, no backup"));
 				}
 
-				if (!WorldGen.loadSuccess)
-				{
-					LoadSubworld(path, cloud);
-				}
+                LoadSubworld(path, cloud);
 
-				current.OnLoad();
+                current.OnLoad();
 			}
-			else if (!WorldGen.loadSuccess)
+			else if (WorldGen.loadFailed)
 			{
 				ModContent.GetInstance<SubworldLibrary>().Logger.Error("Failed to load \"" + main.Name + (WorldGen.worldBackup ? "\" from file" : "\" from file, no backup"));
 				Main.menuMode = 0;
@@ -1481,7 +1478,7 @@ namespace SubworldLibrary
 				return;
 			}
 
-			WorldGen.gen = false;
+			WorldGen.generatingWorld = false;
 
 			if (Main.netMode != 2)
 			{
@@ -1556,7 +1553,6 @@ namespace SubworldLibrary
 
 			for (int i = 0; i < current.Tasks.Count; i++)
 			{
-				WorldGen._genRand = new UnifiedRandom(data.Seed);
 				Main.rand = new UnifiedRandom(data.Seed);
 
 				GenPass task = current.Tasks[i];
@@ -1661,10 +1657,8 @@ namespace SubworldLibrary
 				if (status != 0)
 				{
 					WorldGen.loadFailed = true;
-					WorldGen.loadSuccess = false;
 					return;
 				}
-				WorldGen.loadSuccess = true;
 				WorldGen.loadFailed = false;
 
 				if (current != null)
@@ -1684,7 +1678,6 @@ namespace SubworldLibrary
 			catch
 			{
 				WorldGen.loadFailed = true;
-				WorldGen.loadSuccess = false;
 			}
 		}
 
