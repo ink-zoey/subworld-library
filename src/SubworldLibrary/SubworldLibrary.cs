@@ -36,7 +36,7 @@ namespace SubworldLibrary
 
 		public override void Load()
 		{
-			FieldInfo current = typeof(SubworldSystem).GetField("current", BindingFlags.NonPublic | BindingFlags.Static);
+			FieldInfo current = typeof(SubworldSystem).GetField("current", BindingFlags.Public | BindingFlags.Static);
 			FieldInfo cache = typeof(SubworldSystem).GetField("cache", BindingFlags.NonPublic | BindingFlags.Static);
 			MethodInfo normalUpdates = typeof(Subworld).GetMethod("get_NormalUpdates");
 			MethodInfo shouldSave = typeof(Subworld).GetMethod("get_ShouldSave");
